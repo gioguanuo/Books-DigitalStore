@@ -1,0 +1,36 @@
+{
+  "name": "libreria-digitale",
+  "version": "1.0.0",
+  "description": "Un progetto web moderno con 5 pagine e API JSON consultabili",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx serve .",
+    "deploy": "gh-pages -d ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuonome/libreria-digitale.git"
+  },
+  "keywords": [
+    "html",
+    "css",
+    "javascript",
+    "spa",
+    "api",
+    "json",
+    "responsive",
+    "libreria",
+    "books",
+    "frontend"
+  ],
+  "author": "Il Tuo Nome <tua.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tuonome/libreria-digitale/issues"
+  },
+  "homepage": "https://tuonome.github.io/libreria-digitale",
+  "devDependencies": {
+    "gh-pages": "^4.0.0"
+  }
+}

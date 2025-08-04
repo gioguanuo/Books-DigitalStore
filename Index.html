@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libreria Digitale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: #764ba2;
+        }
+
+        main {
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
+            padding: 2rem 0;
+        }
+
+        .page {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #764ba2;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #666;
+        }
+
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .book-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .book-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .book-info {
+            padding: 1rem;
+        }
+
+        .book-info h3 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .book-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .api-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .api-endpoint {
+            background: #fff;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .api-endpoint:hover {
+            background: #f0f0f0;
+        }
+
+        .json-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .contact-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 1rem;
+            top: 0.5rem;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .book-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">📚 Libreria Digitale</div>
+            <ul class="nav-links">
+                <li><a href="#" onclick="showPage('home')" class="active">Home</a></li>
+                <li><a href="#" onclick="showPage('books')">Libri</a></li>
+                <li><a href="#" onclick="showPage('api')">API</a></li>
+                <li><a href="#" onclick="showPage('stats')">Statistiche</a></li>
+                <li><a href="#" onclick="showPage('contact')">Contatti</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- HOME PAGE -->
+        <div id="home" class="page active">
+            <div class="hero">
+                <h1>Benvenuto nella Libreria Digitale</h1>
+                <p>Scopri migliaia di libri e accedi alle nostre API gratuite</p>
+                <button class="btn" onclick="showPage('books')">Esplora i Libri</button>
+            </div>
+            
+            <div class="book-grid">
+                <div class="book-card" onclick="openBookModal('Il Nome della Rosa')">
+                    <div class="book-image">🌹 Il Nome della Rosa</div>
+                    <div class="book-info">
+                        <h3>Il Nome della Rosa</h3>
+                        <p>Umberto Eco - Romanzo storico ambientato in un monastero medievale</p>
+                    </div>
+                </div>
+                <div class="book-card" onclick="openBookModal('1984')">
+                    <div class="book-image">👁️ 1984</div>
+                    <div class="book-info">
+                        <h3>1984</h3>
+                        <p>George Orwell - Distopia futuristica sul controllo totalitario</p>
+                    </div>
+                </div>
+                <div class="book-card" onclick="openBookModal('Il Piccolo Principe')">
+                    <div class="book-image">👑 Il Piccolo Principe</div>
+                    <div class="book-info">
+                        <h3>Il Piccolo Principe</h3>
+                        <p>Antoine de Saint-Exupéry - Racconto poetico per tutte le età</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOOKS PAGE -->
+        <div id="books" class="page">
+            <h2>Catalogo Libri</h2>
+            <div class="book-grid" id="allBooks">
+                <!-- I libri verranno caricati dinamicamente -->
+            </div>
+        </div>
+
+        <!-- API PAGE -->
+        <div id="api" class="page">
+            <h2>API Endpoints</h2>
+            <p>Clicca sugli endpoint per visualizzare i dati JSON:</p>
+            
+            <div class="api-section">
+                <h3>📚 Libri</h3>
+                <div class="api-endpoint" onclick="loadApiData('books')">
+                    GET /api/books - Lista tutti i libri
+                </div>
+                <div class="api-endpoint" onclick="loadApiData('book', 1)">
+                    GET /api/books/1 - Dettagli libro specifico
+                </div>
+            </div>
+
+            <div class="api-section">
+                <h3>👥 Autori</h3>
+                <div class="api-endpoint" onclick="loadApiData('authors')">
+                    GET /api/authors - Lista tutti gli autori
+                </div>
+                <div class="api-endpoint" onclick="loadApiData('author', 1)">
+                    GET /api/authors/1 - Dettagli autore specifico
+                </div>
+            </div>
+
+            <div class="api-section">
+                <h3>📊 Statistiche</h3>
+                <div class="api-endpoint" onclick="loadApiData('stats')">
+                    GET /api/stats - Statistiche generali
+                </div>
+                <div class="api-endpoint" onclick="loadApiData('categories')">
+                    GET /api/categories - Categorie disponibili
+                </div>
+            </div>
+
+            <div id="apiOutput"></div>
+        </div>
+
+        <!-- STATS PAGE -->
+        <div id="stats" class="page">
+            <h2>Statistiche della Libreria</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">1,247</div>
+                    <div>Libri Totali</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">89</div>
+                    <div>Autori</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">23</div>
+                    <div>Categorie</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">15,432</div>
+                    <div>Utenti Registrati</div>
+                </div>
+            </div>
+            
+            <div class="api-section">
+                <h3>Statistiche API</h3>
+                <div class="api-endpoint" onclick="loadApiData('detailed-stats')">
+                    GET /api/detailed-stats - Statistiche dettagliate
+                </div>
+                <div id="statsOutput"></div>
+            </div>
+        </div>
+
+        <!-- CONTACT PAGE -->
+        <div id="contact" class="page">
+            <h2>Contattaci</h2>
+            <div class="contact-form">
+                <form onsubmit="submitContact(event)">
+                    <div class="form-group">
+                        <label for="name">Nome:</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Messaggio:</label>
+                        <textarea id="message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn">Invia Messaggio</button>
+                </form>
+            </div>
+            
+            <div class="api-section">
+                <h3>API Contatti</h3>
+                <div class="api-endpoint" onclick="loadApiData('contact-info')">
+                    GET /api/contact-info - Informazioni di contatto
+                </div>
+                <div id="contactOutput"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal per dettagli libro -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dati simulati per le API
+        const apiData = {
+            books: [
+                { id: 1, title: "Il Nome della Rosa", author: "Umberto Eco", year: 1980, category: "Romanzo storico", pages: 624, isbn: "978-88-452-1111-1" },
+                { id: 2, title: "1984", author: "George Orwell", year: 1949, category: "Distopia", pages: 328, isbn: "978-88-452-2222-2" },
+                { id: 3, title: "Il Piccolo Principe", author: "Antoine de Saint-Exupéry", year: 1943, category: "Favola", pages: 96, isbn: "978-88-452-3333-3" },
+                { id: 4, title: "Cent'anni di solitudine", author: "Gabriel García Márquez", year: 1967, category: "Realismo magico", pages: 417, isbn: "978-88-452-4444-4" },
+                { id: 5, title: "Il Signore degli Anelli", author: "J.R.R. Tolkien", year: 1954, category: "Fantasy", pages: 1216, isbn: "978-88-452-5555-5" },
+                { id: 6, title: "Orgoglio e Pregiudizio", author: "Jane Austen", year: 1813, category: "Romanzo", pages: 432, isbn: "978-88-452-6666-6" }
+            ],
+            authors: [
+                { id: 1, name: "Umberto Eco", nationality: "Italiana", born: 1932, died: 2016, books: 12 },
+                { id: 2, name: "George Orwell", nationality: "Britannica", born: 1903, died: 1950, books: 8 },
+                { id: 3, name: "Antoine de Saint-Exupéry", nationality: "Francese", born: 1900, died: 1944, books: 5 },
+                { id: 4, name: "Gabriel García Márquez", nationality: "Colombiana", born: 1927, died: 2014, books: 15 },
+                { id: 5, name: "J.R.R. Tolkien", nationality: "Britannica", born: 1892, died: 1973, books: 7 },
+                { id: 6, name: "Jane Austen", nationality: "Britannica", born: 1775, died: 1817, books: 6 }
+            ],
+            categories: [
+                { id: 1, name: "Romanzo storico", count: 45 },
+                { id: 2, name: "Distopia", count: 23 },
+                { id: 3, name: "Favola", count: 67 },
+                { id: 4, name: "Realismo magico", count: 34 },
+                { id: 5, name: "Fantasy", count: 156 },
+                { id: 6, name: "Romanzo", count: 234 }
+            ],
+            stats: {
+                totalBooks: 1247,
+                totalAuthors: 89,
+                totalCategories: 23,
+                totalUsers: 15432,
+                monthlyActiveUsers: 3421,
+                averageRating: 4.2,
+                newBooksThisMonth: 47
+            },
+            contactInfo: {
+                address: "Via dei Libri 123, Milano, Italia",
+                phone: "+39 02 1234567",
+                email: "info@libreriadigitale.it",
+                socialMedia: {
+                    facebook: "libreriadigitale",
+                    twitter: "@libreriadigit",
+                    instagram: "libreria_digitale"
+                },
+                businessHours: "Lun-Ven 9:00-18:00, Sab 9:00-13:00"
+            }
+        };
+
+        function showPage(pageId) {
+            // Nasconde tutte le pagine
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Rimuove la classe active da tutti i link di navigazione
+            document.querySelectorAll('.nav-links a').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Mostra la pagina selezionata
+            document.getElementById(pageId).classList.add('active');
+            
+            // Aggiunge la classe active al link corrispondente
+            event.target.classList.add('active');
+            
+            // Carica i libri se siamo nella pagina books
+            if (pageId === 'books') {
+                loadAllBooks();
+            }
+        }
+
+        function loadAllBooks() {
+            const booksContainer = document.getElementById('allBooks');
+            booksContainer.innerHTML = '';
+            
+            apiData.books.forEach(book => {
+                const bookCard = document.createElement('div');
+                bookCard.className = 'book-card';
+                bookCard.onclick = () => openBookModal(book.title, book);
+                
+                const emoji = getBookEmoji(book.category);
+                
+                bookCard.innerHTML = `
+                    <div class="book-image">${emoji} ${book.title}</div>
+                    <div class="book-info">
+                        <h3>${book.title}</h3>
+                        <p>${book.author} - ${book.category} (${book.year})</p>
+                        <p>Pagine: ${book.pages} | ISBN: ${book.isbn}</p>
+                    </div>
+                `;
+                
+                booksContainer.appendChild(bookCard);
+            });
+        }
+
+        function getBookEmoji(category) {
+            const emojis = {
+                "Romanzo storico": "🏰",
+                "Distopia": "👁️",
+                "Favola": "👑",
+                "Realismo magico": "✨",
+                "Fantasy": "🧙‍♂️",
+                "Romanzo": "📖"
+            };
+            return emojis[category] || "📚";
+        }
+
+        function openBookModal(title, book = null) {
+            const modal = document.getElementById('bookModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            if (book) {
+                modalContent.innerHTML = `
+                    <h2>${book.title}</h2>
+                    <p><strong>Autore:</strong> ${book.author}</p>
+                    <p><strong>Anno:</strong> ${book.year}</p>
+                    <p><strong>Categoria:</strong> ${book.category}</p>
+                    <p><strong>Pagine:</strong> ${book.pages}</p>
+                    <p><strong>ISBN:</strong> ${book.isbn}</p>
+                    <div class="api-section">
+                        <h4>Dati API per questo libro:</h4>
+                        <div class="json-output">${JSON.stringify(book, null, 2)}</div>
+                    </div>
+                `;
+            } else {
+                // Fallback per i libri della home
+                const fallbackBook = apiData.books.find(b => b.title === title);
+                if (fallbackBook) {
+                    openBookModal(title, fallbackBook);
+                    return;
+                }
+                modalContent.innerHTML = `<h2>${title}</h2><p>Dettagli non disponibili</p>`;
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('bookModal').style.display = 'none';
+        }
+
+        function loadApiData(endpoint, id = null) {
+            let data;
+            let apiUrl;
+            
+            switch(endpoint) {
+                case 'books':
+                    data = apiData.books;
+                    apiUrl = '/api/books';
+                    break;
+                case 'book':
+                    data = apiData.books.find(book => book.id === id);
+                    apiUrl = `/api/books/${id}`;
+                    break;
+                case 'authors':
+                    data = apiData.authors;
+                    apiUrl = '/api/authors';
+                    break;
+                case 'author':
+                    data = apiData.authors.find(author => author.id === id);
+                    apiUrl = `/api/authors/${id}`;
+                    break;
+                case 'categories':
+                    data = apiData.categories;
+                    apiUrl = '/api/categories';
+                    break;
+                case 'stats':
+                    data = apiData.stats;
+                    apiUrl = '/api/stats';
+                    break;
+                case 'detailed-stats':
+                    data = {
+                        ...apiData.stats,
+                        topCategories: apiData.categories.slice(0, 3),
+                        recentBooks: apiData.books.slice(-3)
+                    };
+                    apiUrl = '/api/detailed-stats';
+                    break;
+                case 'contact-info':
+                    data = apiData.contactInfo;
+                    apiUrl = '/api/contact-info';
+                    break;
+                default:
+                    data = { error: "Endpoint not found" };
+                    apiUrl = `/api/${endpoint}`;
+            }
+            
+            const output = `
+                <div class="api-section">
+                    <h3>Risposta API per: ${apiUrl}</h3>
+                    <div class="json-output">${JSON.stringify(data, null, 2)}</div>
+                </div>
+            `;
+            
+            // Determina dove mostrare l'output in base alla pagina corrente
+            const currentPage = document.querySelector('.page.active').id;
+            let outputContainer = document.getElementById('apiOutput');
+            
+            if (currentPage === 'stats') {
+                outputContainer = document.getElementById('statsOutput');
+            } else if (currentPage === 'contact') {
+                outputContainer = document.getElementById('contactOutput');
+            }
+            
+            if (outputContainer) {
+                outputContainer.innerHTML = output;
+            }
+        }
+
+        function submitContact(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                message: document.getElementById('message').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            alert('Messaggio inviato con successo!\n\nDati inviati:\n' + JSON.stringify(formData, null, 2));
+            
+            // Reset form
+            event.target.reset();
+        }
+
+        // Chiudi modal cliccando fuori
+        window.onclick = function(event) {
+            const modal = document.getElementById('bookModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Inizializza la pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllBooks();
+        });
+    </script>
+</body>
+</html>
