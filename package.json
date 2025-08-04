@@ -1,16 +1,17 @@
 {
-  "name": "libreria-digitale",
+  "name": "books-digitalstore",
   "version": "1.0.0",
   "description": "Un progetto web moderno con 5 pagine e API JSON consultabili",
   "main": "index.html",
   "scripts": {
     "start": "python -m http.server 8000",
     "serve": "npx serve .",
+    "build": "echo 'Static site - no build needed'",
     "deploy": "gh-pages -d ."
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tuonome/libreria-digitale.git"
+    "url": "git+https://github.com/gioguanuo/Books-DigitalStore.git"
   },
   "keywords": [
     "html",
@@ -24,12 +25,12 @@
     "books",
     "frontend"
   ],
-  "author": "Il Tuo Nome <tua.email@example.com>",
+  "author": "gioguanuo <tua.email@example.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tuonome/libreria-digitale/issues"
+    "url": "https://github.com/gioguanuo/Books-DigitalStore/issues"
   },
-  "homepage": "https://tuonome.github.io/libreria-digitale",
+  "homepage": "https://books-digitalstore.vercel.app",
   "devDependencies": {
     "gh-pages": "^4.0.0"
   }
