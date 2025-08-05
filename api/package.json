@@ -1,0 +1,55 @@
+{
+  "name": "books-digitalstore",
+  "version": "1.0.0",
+  "description": "Un progetto web moderno con 5 pagine e API reali consultabili",
+  "main": "index.html",
+  "scripts": {
+    "start": "vercel dev",
+    "build": "echo 'Static site with serverless functions'",
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gioguanuo/Books-DigitalStore.git"
+  },
+  "keywords": [
+    "html",
+    "css",
+    "javascript",
+    "api",
+    "serverless",
+    "vercel",
+    "json",
+    "responsive",
+    "libreria",
+    "books",
+    "frontend",
+    "backend"
+  ],
+  "author": "gioguanuo <tua.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gioguanuo/Books-DigitalStore/issues"
+  },
+  "homepage": "https://books-digitalstore.vercel.app",
+  "devDependencies": {
+    "vercel": "^28.0.0"
+  }
+}
+    "json",
+    "responsive",
+    "libreria",
+    "books",
+    "frontend"
+  ],
+  "author": "gioguanuo <tua.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gioguanuo/Books-DigitalStore/issues"
+  },
+  "homepage": "https://books-digitalstore.vercel.app",
+  "devDependencies": {
+    "gh-pages": "^4.0.0"
+  }
+}
