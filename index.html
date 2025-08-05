@@ -371,6 +371,9 @@
                 <div class="api-endpoint" onclick="loadApiData('book', 1)">
                     GET /api/books/1 - Dettagli libro specifico
                 </div>
+                <div class="api-endpoint" onclick="loadApiData('book', 2)">
+                    GET /api/books/2 - Dettagli "1984"
+                </div>
             </div>
 
             <div class="api-section">
@@ -381,16 +384,38 @@
                 <div class="api-endpoint" onclick="loadApiData('author', 1)">
                     GET /api/authors/1 - Dettagli autore specifico
                 </div>
+                <div class="api-endpoint" onclick="loadApiData('author', 5)">
+                    GET /api/authors/5 - Dettagli "J.R.R. Tolkien"
+                </div>
             </div>
 
             <div class="api-section">
-                <h3>📊 Statistiche</h3>
+                <h3>📊 Statistiche & Dati</h3>
                 <div class="api-endpoint" onclick="loadApiData('stats')">
                     GET /api/stats - Statistiche generali
+                </div>
+                <div class="api-endpoint" onclick="loadApiData('detailed-stats')">
+                    GET /api/detailed-stats - Statistiche dettagliate
                 </div>
                 <div class="api-endpoint" onclick="loadApiData('categories')">
                     GET /api/categories - Categorie disponibili
                 </div>
+                <div class="api-endpoint" onclick="loadApiData('contact-info')">
+                    GET /api/contact-info - Informazioni di contatto
+                </div>
+            </div>
+
+            <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 10px; margin: 2rem 0; border-left: 4px solid #2196f3;">
+                <h4>🚀 Come testare le API esternamente:</h4>
+                <p>Una volta deployato su Vercel, potrai testare le API direttamente dal browser o con tools come Postman:</p>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                    <li><code>https://tuo-sito.vercel.app/api/books</code></li>
+                    <li><code>https://tuo-sito.vercel.app/api/authors</code></li>
+                    <li><code>https://tuo-sito.vercel.app/api/stats</code></li>
+                </ul>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">
+                    Le API supportan CORS e restituiscono JSON puro, perfette per integrazioni esterne!
+                </p>
             </div>
 
             <div id="apiOutput"></div>
@@ -467,8 +492,8 @@
     </div>
 
     <script>
-        // Dati simulati per le API
-        const apiData = {
+        // Dati di fallback per quando le API non sono disponibili
+        const fallbackData = {
             books: [
                 { id: 1, title: "Il Nome della Rosa", author: "Umberto Eco", year: 1980, category: "Romanzo storico", pages: 624, isbn: "978-88-452-1111-1" },
                 { id: 2, title: "1984", author: "George Orwell", year: 1949, category: "Distopia", pages: 328, isbn: "978-88-452-2222-2" },
@@ -476,44 +501,41 @@
                 { id: 4, title: "Cent'anni di solitudine", author: "Gabriel García Márquez", year: 1967, category: "Realismo magico", pages: 417, isbn: "978-88-452-4444-4" },
                 { id: 5, title: "Il Signore degli Anelli", author: "J.R.R. Tolkien", year: 1954, category: "Fantasy", pages: 1216, isbn: "978-88-452-5555-5" },
                 { id: 6, title: "Orgoglio e Pregiudizio", author: "Jane Austen", year: 1813, category: "Romanzo", pages: 432, isbn: "978-88-452-6666-6" }
-            ],
-            authors: [
-                { id: 1, name: "Umberto Eco", nationality: "Italiana", born: 1932, died: 2016, books: 12 },
-                { id: 2, name: "George Orwell", nationality: "Britannica", born: 1903, died: 1950, books: 8 },
-                { id: 3, name: "Antoine de Saint-Exupéry", nationality: "Francese", born: 1900, died: 1944, books: 5 },
-                { id: 4, name: "Gabriel García Márquez", nationality: "Colombiana", born: 1927, died: 2014, books: 15 },
-                { id: 5, name: "J.R.R. Tolkien", nationality: "Britannica", born: 1892, died: 1973, books: 7 },
-                { id: 6, name: "Jane Austen", nationality: "Britannica", born: 1775, died: 1817, books: 6 }
-            ],
-            categories: [
-                { id: 1, name: "Romanzo storico", count: 45 },
-                { id: 2, name: "Distopia", count: 23 },
-                { id: 3, name: "Favola", count: 67 },
-                { id: 4, name: "Realismo magico", count: 34 },
-                { id: 5, name: "Fantasy", count: 156 },
-                { id: 6, name: "Romanzo", count: 234 }
-            ],
-            stats: {
-                totalBooks: 1247,
-                totalAuthors: 89,
-                totalCategories: 23,
-                totalUsers: 15432,
-                monthlyActiveUsers: 3421,
-                averageRating: 4.2,
-                newBooksThisMonth: 47
-            },
-            contactInfo: {
-                address: "Via dei Libri 123, Milano, Italia",
-                phone: "+39 02 1234567",
-                email: "info@libreriadigitale.it",
-                socialMedia: {
-                    facebook: "libreriadigitale",
-                    twitter: "@libreriadigit",
-                    instagram: "libreria_digitale"
-                },
-                businessHours: "Lun-Ven 9:00-18:00, Sab 9:00-13:00"
-            }
+            ]
         };
+
+        // Utility function per chiamate API
+        async function apiCall(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const result = await response.json();
+                return result.success ? result.data : result;
+            } catch (error) {
+                console.error(`API Error for ${endpoint}:`, error);
+                throw error;
+            }
+        }
+
+        // Loading indicator
+        function showLoading(container) {
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #764ba2; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin-top: 1rem; color: #666;">Caricamento dati...</p>
+                    </div>
+                    <style>
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
+                `;
+            }
+        }
 
         function showPage(pageId) {
             // Nasconde tutte le pagine
@@ -540,9 +562,23 @@
 
         function loadAllBooks() {
             const booksContainer = document.getElementById('allBooks');
-            booksContainer.innerHTML = '';
+            showLoading(booksContainer);
             
-            apiData.books.forEach(book => {
+            // Prova a caricare dai API reali, fallback ai dati locali
+            apiCall('/api/books')
+                .then(books => {
+                    renderBooks(books, booksContainer);
+                })
+                .catch(error => {
+                    console.warn('API non disponibile, uso dati di fallback:', error);
+                    renderBooks(fallbackData.books, booksContainer);
+                });
+        }
+
+        function renderBooks(books, container) {
+            container.innerHTML = '';
+            
+            books.forEach(book => {
                 const bookCard = document.createElement('div');
                 bookCard.className = 'book-card';
                 bookCard.onclick = () => openBookModal(book.title, book);
@@ -555,10 +591,12 @@
                         <h3>${book.title}</h3>
                         <p>${book.author} - ${book.category} (${book.year})</p>
                         <p>Pagine: ${book.pages} | ISBN: ${book.isbn}</p>
+                        ${book.rating ? `<p>⭐ ${book.rating}/5</p>` : ''}
+                        ${book.available !== undefined ? `<p>📚 ${book.available ? 'Disponibile' : 'Non disponibile'}</p>` : ''}
                     </div>
                 `;
                 
-                booksContainer.appendChild(bookCard);
+                container.appendChild(bookCard);
             });
         }
 
@@ -586,14 +624,20 @@
                     <p><strong>Categoria:</strong> ${book.category}</p>
                     <p><strong>Pagine:</strong> ${book.pages}</p>
                     <p><strong>ISBN:</strong> ${book.isbn}</p>
+                    ${book.rating ? `<p><strong>Valutazione:</strong> ⭐ ${book.rating}/5</p>` : ''}
+                    ${book.available !== undefined ? `<p><strong>Disponibilità:</strong> ${book.available ? '✅ Disponibile' : '❌ Non disponibile'}</p>` : ''}
+                    ${book.description ? `<p><strong>Descrizione:</strong> ${book.description}</p>` : ''}
                     <div class="api-section">
                         <h4>Dati API per questo libro:</h4>
                         <div class="json-output">${JSON.stringify(book, null, 2)}</div>
+                        <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                            <strong>URL API:</strong> <code>/api/books/${book.id}</code>
+                        </p>
                     </div>
                 `;
             } else {
                 // Fallback per i libri della home
-                const fallbackBook = apiData.books.find(b => b.title === title);
+                const fallbackBook = fallbackData.books.find(b => b.title === title);
                 if (fallbackBook) {
                     openBookModal(title, fallbackBook);
                     return;
@@ -608,60 +652,91 @@
             document.getElementById('bookModal').style.display = 'none';
         }
 
-        function loadApiData(endpoint, id = null) {
-            let data;
+        async function loadApiData(endpoint, id = null) {
             let apiUrl;
+            let outputContainer = getOutputContainer();
             
-            switch(endpoint) {
-                case 'books':
-                    data = apiData.books;
-                    apiUrl = '/api/books';
-                    break;
-                case 'book':
-                    data = apiData.books.find(book => book.id === id);
-                    apiUrl = `/api/books/${id}`;
-                    break;
-                case 'authors':
-                    data = apiData.authors;
-                    apiUrl = '/api/authors';
-                    break;
-                case 'author':
-                    data = apiData.authors.find(author => author.id === id);
-                    apiUrl = `/api/authors/${id}`;
-                    break;
-                case 'categories':
-                    data = apiData.categories;
-                    apiUrl = '/api/categories';
-                    break;
-                case 'stats':
-                    data = apiData.stats;
-                    apiUrl = '/api/stats';
-                    break;
-                case 'detailed-stats':
-                    data = {
-                        ...apiData.stats,
-                        topCategories: apiData.categories.slice(0, 3),
-                        recentBooks: apiData.books.slice(-3)
-                    };
-                    apiUrl = '/api/detailed-stats';
-                    break;
-                case 'contact-info':
-                    data = apiData.contactInfo;
-                    apiUrl = '/api/contact-info';
-                    break;
-                default:
-                    data = { error: "Endpoint not found" };
-                    apiUrl = `/api/${endpoint}`;
+            // Mostra loading
+            showLoading(outputContainer);
+            
+            try {
+                switch(endpoint) {
+                    case 'books':
+                        apiUrl = '/api/books';
+                        break;
+                    case 'book':
+                        apiUrl = `/api/books/${id}`;
+                        break;
+                    case 'authors':
+                        apiUrl = '/api/authors';
+                        break;
+                    case 'author':
+                        apiUrl = `/api/authors/${id}`;
+                        break;
+                    case 'categories':
+                        apiUrl = '/api/categories';
+                        break;
+                    case 'stats':
+                        apiUrl = '/api/stats';
+                        break;
+                    case 'detailed-stats':
+                        apiUrl = '/api/detailed-stats';
+                        break;
+                    case 'contact-info':
+                        apiUrl = '/api/contact-info';
+                        break;
+                    default:
+                        throw new Error(`Endpoint non riconosciuto: ${endpoint}`);
+                }
+
+                // Chiamata API reale
+                const data = await apiCall(apiUrl);
+                
+                const output = `
+                    <div class="api-section">
+                        <h3>✅ Risposta API per: ${apiUrl}</h3>
+                        <p style="color: #28a745; font-size: 0.9rem; margin-bottom: 1rem;">
+                            <strong>Status:</strong> Success | <strong>Endpoint:</strong> <code>${apiUrl}</code>
+                        </p>
+                        <div class="json-output">${JSON.stringify(data, null, 2)}</div>
+                        <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e8; border-radius: 5px; font-size: 0.9rem;">
+                            <strong>🔗 Testa questo endpoint:</strong><br>
+                            <code>${window.location.origin}${apiUrl}</code><br>
+                            <small>Copia questo URL e aprilo in una nuova scheda per vedere i dati JSON puri!</small>
+                        </div>
+                    </div>
+                `;
+                
+                if (outputContainer) {
+                    outputContainer.innerHTML = output;
+                }
+                
+            } catch (error) {
+                console.error('Errore API:', error);
+                
+                const errorOutput = `
+                    <div class="api-section">
+                        <h3>❌ Errore API per: ${apiUrl}</h3>
+                        <p style="color: #dc3545; font-size: 0.9rem; margin-bottom: 1rem;">
+                            <strong>Errore:</strong> ${error.message}
+                        </p>
+                        <div style="background: #f8d7da; padding: 1rem; border-radius: 5px; border-left: 4px solid #dc3545;">
+                            <strong>Possibili cause:</strong><br>
+                            • API non ancora deployate su Vercel<br>
+                            • Errore di rete<br>
+                            • Endpoint non configurato correttamente<br><br>
+                            <strong>Soluzione:</strong> Assicurati che i file API siano nella cartella <code>/api/</code> e che il sito sia deployato su Vercel.
+                        </div>
+                    </div>
+                `;
+                
+                if (outputContainer) {
+                    outputContainer.innerHTML = errorOutput;
+                }
             }
-            
-            const output = `
-                <div class="api-section">
-                    <h3>Risposta API per: ${apiUrl}</h3>
-                    <div class="json-output">${JSON.stringify(data, null, 2)}</div>
-                </div>
-            `;
-            
-            // Determina dove mostrare l'output in base alla pagina corrente
+        }
+
+        function getOutputContainer() {
             const currentPage = document.querySelector('.page.active').id;
             let outputContainer = document.getElementById('apiOutput');
             
@@ -671,9 +746,7 @@
                 outputContainer = document.getElementById('contactOutput');
             }
             
-            if (outputContainer) {
-                outputContainer.innerHTML = output;
-            }
+            return outputContainer;
         }
 
         function submitContact(event) {

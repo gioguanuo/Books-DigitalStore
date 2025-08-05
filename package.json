@@ -37,19 +37,3 @@
     "vercel": "^28.0.0"
   }
 }
-    "json",
-    "responsive",
-    "libreria",
-    "books",
-    "frontend"
-  ],
-  "author": "gioguanuo <tua.email@example.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/gioguanuo/Books-DigitalStore/issues"
-  },
-  "homepage": "https://books-digitalstore.vercel.app",
-  "devDependencies": {
-    "gh-pages": "^4.0.0"
-  }
-}
