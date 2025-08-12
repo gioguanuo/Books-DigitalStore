@@ -1,5 +1,5 @@
 // /api/turnstile-verify.js
-export const config = { api: { bodyParser: true } }; // forza il parser
+export const config = { api: { bodyParser: true } };
 
 function getToken(req) {
   try {
@@ -16,21 +16,59 @@ function getToken(req) {
 
 export default async function handler(req, res) {
   try {
-    if (req.method !== 'POST') return res.status(405).json({ success:false, error:'Method not allowed' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-    const secret = process.env.TURNSTILE_SECRET_KEY || '';
-    const token  = getToken(req);
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    const token = getToken(req);
 
-    // DIAGNOSTICA: niente chiamata a Cloudflare finché non vediamo ok
-    return res.status(200).json({
-      success: !!(secret && token),
-      hasSecret: !!secret,
-      secretLen: secret.length,
-      hasToken: !!token,
-      bodyType: typeof req.body,
+    if (!secret) {
+      return res.status(500).json({ success: false, error: 'Secret key not configured' });
+    }
+
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token missing' });
+    }
+
+    // Verifica con Cloudflare
+    const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: secret,
+        response: token,
+        remoteip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown'
+      })
     });
-  } catch (e) {
-    return res.status(500).json({ success:false, error: e?.message || 'server' });
+
+    const verifyData = await verifyResponse.json();
+
+    if (!verifyResponse.ok) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Cloudflare verification failed' 
+      });
+    }
+
+    // Controlli aggiuntivi per sicurezza
+    const isValid = verifyData.success === true &&
+                   verifyData.action === 'homepage' &&
+                   (verifyData.hostname === 'tuo-dominio.vercel.app' || 
+                    verifyData.hostname === 'tuodominio.com'); // Sostituisci con i tuoi domini
+
+    return res.status(200).json({
+      success: isValid,
+      action: verifyData.action,
+      hostname: verifyData.hostname,
+      'error-codes': verifyData['error-codes'] || []
+    });
+
+  } catch (error) {
+    console.error('Turnstile verification error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
   }
 }
-
