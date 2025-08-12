@@ -793,25 +793,32 @@
         });
     </script>
 	<script>
-		  async function onTurnstileHomeSolved(token) {
-			// Verifica immediata lato server (consigliato)
-			try {
-			  const res = await fetch('/api/turnstile-verify', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ 'cf-turnstile-response': token })
-			  });
-			  const data = await res.json();
-			  if (!res.ok || !data?.success) throw new Error('Verifica fallita');
-			  const msg = document.getElementById('homeVerifyMsg');
-			  if (msg) msg.textContent = '✅ Verifica completata';
-			  // Opzionale: salva stato in sessione
-			  // sessionStorage.setItem('turnstileOK', '1');
-			} catch (e) {
-			  const msg = document.getElementById('homeVerifyMsg');
-			  if (msg) msg.textContent = '❌ Verifica non riuscita. Ricarica la pagina o riprova.';
-			}
-		  }
+	  async function onTurnstileHomeSolved(token) {
+		try {
+		  const res = await fetch('/api/turnstile-verify', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ 'cf-turnstile-response': token })
+		  });
+		  const data = await res.json();
+
+		  // Controllo anche action e hostname
+		  const valid =
+			res.ok &&
+			data?.success === true &&
+			data?.action === 'homepage' &&
+			(data?.hostname === 'www.sectest-lab.space' || data?.hostname === 'sectest-lab.space');
+
+		  const msg = document.getElementById('homeVerifyMsg');
+		  msg.textContent = valid
+			? '✅ Verifica completata'
+			: `❌ Verifica fallita${data['error-codes'] ? ': ' + data['error-codes'].join(', ') : ''}`;
+		} catch (e) {
+		  const msg = document.getElementById('homeVerifyMsg');
+		  msg.textContent = '❌ Errore di verifica';
+		}
+	  }
 </script>
+
 </body>
 </html>
