@@ -301,7 +301,6 @@
             }
         }
     </style>
-	<script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
 </head>
 <body>
     <header>
@@ -325,19 +324,7 @@
                 <p>Scopri migliaia di libri e accedi alle nostre API gratuite</p>
                 <button class="btn" onclick="showPage('books')">Esplora i Libri</button>
             </div>
-            <!-- Turnstile widget in home -->
-			<div style="margin-top:1rem">
-			  <div class="cf-turnstile"
-				   data-sitekey="0x4AAAAAABq1gQOX3nSzuwgm"  <!-- in produzione: sostituisci con la tua Site key -->
-				   data-theme="auto"
-				   data-action="homepage"
-				   data-callback="onTurnstileHomeSolved">
-			  </div>
-			</div>
-			<small id="homeVerifyMsg" style="display:block; margin-top:.5rem; color:#666">
-			  Verifica anti-bot in corso…
-			</small>
-			
+            
             <div class="book-grid">
                 <div class="book-card" onclick="openBookModal('Il Nome della Rosa')">
                     <div class="book-image">🌹 Il Nome della Rosa</div>
@@ -791,26 +778,5 @@
             loadAllBooks();
         });
     </script>
-	<script>
-	  async function onTurnstileHomeSolved(token) {
-		// Verifica immediata lato server (consigliato)
-		try {
-		  const res = await fetch('/api/turnstile-verify', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ 'cf-turnstile-response': token })
-		  });
-		  const data = await res.json();
-		  if (!res.ok || !data?.success) throw new Error('Verifica fallita');
-		  const msg = document.getElementById('homeVerifyMsg');
-		  if (msg) msg.textContent = '✅ Verifica completata';
-		  // Opzionale: salva stato in sessione
-		  // sessionStorage.setItem('turnstileOK', '1');
-		} catch (e) {
-		  const msg = document.getElementById('homeVerifyMsg');
-		  if (msg) msg.textContent = '❌ Verifica non riuscita. Ricarica la pagina o riprova.';
-		}
-	  }
-</script>
 </body>
 </html>
