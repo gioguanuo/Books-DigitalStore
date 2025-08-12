@@ -792,7 +792,39 @@
             loadAllBooks();
         });
     </script>
+	
 	<script>
+		  async function onTurnstileHomeSolved(token) {
+			const msg = document.getElementById('homeVerifyMsg');
+			try {
+			  const res = await fetch('/api/turnstile-verify', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ 'cf-turnstile-response': token })
+			  });
+
+			  const text = await res.text();          // <-- leggo grezzo
+			  let data = null;
+			  try { data = JSON.parse(text); } catch {}
+			  console.log('verify status:', res.status, 'raw:', text);
+
+			  const ok = data?.success === true;      // server ha detto success
+			  const errs = data?.['error-codes']?.join(', ') || '';
+
+			  msg.textContent = ok
+				? '✅ Verifica completata'
+				: `❌ Verifica fallita${errs ? ': ' + errs : ''} (HTTP ' + res.status + ')`;
+
+			  if (!ok) window.turnstile?.reset(document.querySelector('.cf-turnstile'));
+			} catch (e) {
+			  msg.textContent = '❌ Errore di verifica (rete o JSON)';
+			  console.error(e);
+			}
+		  }
+	</script>
+
+	
+<!-- 	<script>
 	  async function onTurnstileHomeSolved(token) {
 		try {
 		  const res = await fetch('/api/turnstile-verify', {
@@ -818,7 +850,7 @@
 		  msg.textContent = '❌ Errore di verifica';
 		}
 	  }
-</script>
+</script> -->
 
 </body>
 </html>
