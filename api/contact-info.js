@@ -1,4 +1,4 @@
-// /api/contact-info.js - SINTASSI CORRETTA PER VERCEL
+// /api/contact-info.js - FIX PER POST JSON
 export default function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,15 +17,43 @@ export default function handler(req, res) {
     });
   }
 
-  // 2. ESTRAI TOKEN
+  // 2. ESTRAI TOKEN CON PARSING MIGLIORATO
   let token = null;
 
-  if (req.method === 'GET') {
-    token = req.query && req.query['cf-turnstile-response'];
-  } else if (req.method === 'POST') {
-    if (req.body && typeof req.body === 'object') {
-      token = req.body['cf-turnstile-response'];
+  try {
+    if (req.method === 'GET') {
+      token = req.query && req.query['cf-turnstile-response'];
+      
+    } else if (req.method === 'POST') {
+      const contentType = req.headers['content-type'] || '';
+      
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        // Form data - funziona già
+        if (req.body && typeof req.body === 'object') {
+          token = req.body['cf-turnstile-response'];
+        }
+      } else if (contentType.includes('application/json')) {
+        // JSON - usa la stessa logica di turnstile-verify.js
+        if (typeof req.body === 'string') {
+          try {
+            const parsed = JSON.parse(req.body);
+            token = parsed['cf-turnstile-response'];
+          } catch (parseError) {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid JSON format'
+            });
+          }
+        } else if (req.body && typeof req.body === 'object') {
+          token = req.body['cf-turnstile-response'];
+        }
+      }
     }
+  } catch (extractError) {
+    return res.status(400).json({
+      success: false,
+      error: 'Error processing request body'
+    });
   }
 
   // 3. VERIFICA TOKEN OBBLIGATORIO
@@ -40,7 +68,7 @@ export default function handler(req, res) {
     });
   }
 
-  // 4. VERIFICA CON CLOUDFLARE (usando async/await con .then())
+  // 4. VERIFICA CON CLOUDFLARE
   const secret = process.env.TURNSTILE_SECRET_KEY;
   
   if (!secret) {
@@ -54,7 +82,7 @@ export default function handler(req, res) {
                   req.headers['x-forwarded-for']?.split(',')[0] || 
                   '127.0.0.1';
 
-  // Usa .then() invece di async/await per compatibilità
+  // Verifica asincrona con .then()
   fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
