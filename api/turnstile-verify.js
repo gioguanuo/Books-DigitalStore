@@ -1,4 +1,4 @@
-// /api/turnstile-verify.js - SUPPORTO FORM DATA E JSON
+// /api/turnstile-verify.js - FIX FORM DATA PARSING
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,11 +33,21 @@ export default async function handler(req, res) {
 
     console.log('Content-Type:', contentType);
     console.log('Body type:', typeof req.body);
+    console.log('Body content:', req.body);
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
-      // Form data
+      // Form data - Vercel automatically parses it
       console.log('Processing form data...');
-      token = req.body?.['cf-turnstile-response'];
+      
+      if (typeof req.body === 'string') {
+        // If it's still a string, parse it manually
+        const params = new URLSearchParams(req.body);
+        token = params.get('cf-turnstile-response');
+      } else if (req.body && typeof req.body === 'object') {
+        // If it's already parsed
+        token = req.body['cf-turnstile-response'];
+      }
+      
     } else if (contentType.includes('application/json')) {
       // JSON data
       console.log('Processing JSON data...');
@@ -47,6 +57,7 @@ export default async function handler(req, res) {
           const parsed = JSON.parse(req.body);
           token = parsed['cf-turnstile-response'];
         } catch (error) {
+          console.error('JSON parse error:', error.message);
           return res.status(400).json({ 
             success: false, 
             error: 'Invalid JSON format',
@@ -56,28 +67,37 @@ export default async function handler(req, res) {
       } else if (req.body && typeof req.body === 'object') {
         token = req.body['cf-turnstile-response'];
       }
+      
     } else {
       return res.status(400).json({ 
         success: false, 
-        error: 'Unsupported content type' 
+        error: 'Unsupported content type. Use application/json or application/x-www-form-urlencoded' 
       });
     }
 
-    if (!token || typeof token !== 'string') {
+    console.log('Token extracted:', token ? `${token.substring(0, 10)}...` : 'NULL');
+
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
       return res.status(400).json({ 
         success: false, 
         error: 'Token missing or invalid',
-        'error-codes': ['missing-input-response']
+        'error-codes': ['missing-input-response'],
+        debug: {
+          tokenReceived: !!token,
+          tokenType: typeof token,
+          bodyType: typeof req.body,
+          contentType: contentType
+        }
       });
     }
-
-    console.log('Token extracted successfully, length:', token.length);
 
     // 3. Get client IP
     const clientIP = req.headers['cf-connecting-ip'] || 
                     req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
                     req.headers['x-real-ip'] || 
                     '127.0.0.1';
+
+    console.log('Verifying token for IP:', clientIP);
 
     // 4. Verify with Cloudflare
     const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -101,7 +121,10 @@ export default async function handler(req, res) {
 
     const result = await verifyResponse.json();
     
-    console.log('Verification result:', result.success, result['error-codes']);
+    console.log('Cloudflare verification result:', {
+      success: result.success,
+      errorCodes: result['error-codes']
+    });
 
     // 5. Return result
     return res.status(200).json({
