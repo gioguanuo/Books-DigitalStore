@@ -1,4 +1,4 @@
-// /api/turnstile-verify.js - VERSIONE COMPLETA E ROBUSTA
+// /api/turnstile-verify.js - VERSIONE CORRETTA SENZA BUG
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,33 +34,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. EXTRACT AND VALIDATE TOKEN
-    let token = null;
-    let requestData = null;
-
-    // Handle different body formats
-    try {
-      if (typeof req.body === 'string') {
-        requestData = JSON.parse(req.body);
-      } else if (req.body && typeof req.body === 'object') {
-        requestData = req.body;
-      } else {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Invalid request body format',
-          'error-codes': ['invalid-body-format']
-        });
-      }
-    } catch (parseError) {
+    // 2. EXTRACT AND VALIDATE TOKEN (FIXED)
+    if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ 
         success: false, 
-        error: 'Invalid JSON in request body',
-        'error-codes': ['invalid-json']
+        error: 'Invalid request body format',
+        'error-codes': ['invalid-body-format']
       });
     }
 
-    // Extract token
-    token = requestData['cf-turnstile-response'];
+    const requestData = req.body;
+    const token = requestData['cf-turnstile-response'];
 
     if (!token || typeof token !== 'string' || token.trim().length === 0) {
       return res.status(400).json({ 
@@ -84,7 +68,7 @@ export default async function handler(req, res) {
     const userAgent = req.headers['user-agent'] || 'unknown';
     const hostname = req.headers.host || 'unknown';
 
-    // Optional: Basic rate limiting check (simple in-memory)
+    // Optional: Basic rate limiting check
     if (!checkRateLimit(clientIP)) {
       return res.status(429).json({
         success: false,
@@ -108,8 +92,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Vercel-Function/1.0'
       },
-      body: verifyPayload,
-      timeout: 10000 // 10 second timeout
+      body: verifyPayload
     });
 
     if (!verifyResponse.ok) {
@@ -247,7 +230,7 @@ function isNotExpired(challengeTs) {
   return (now - challengeTime) <= maxAge;
 }
 
-// Simple in-memory rate limiting (for production, use Redis or database)
+// Simple in-memory rate limiting
 const rateLimitMap = new Map();
 
 function checkRateLimit(ip, maxRequests = 10, windowMs = 60000) {
@@ -301,9 +284,4 @@ function logVerificationAttempt(data) {
     errorCodes: data.errorCodes,
     validations: data.validations
   });
-  
-  // In production, you might want to send this to:
-  // - Analytics service
-  // - Logging service (like Logtail, DataDog)
-  // - Metrics collection (Prometheus, etc.)
 }
