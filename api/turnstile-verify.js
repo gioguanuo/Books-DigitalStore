@@ -1,4 +1,4 @@
-// /api/turnstile-verify.js - FIX FINALE PER BODY PARSING
+// /api/turnstile-verify.js - RAW BODY HANDLING
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Check environment first
+    // 1. Check environment
     const secret = process.env.TURNSTILE_SECRET_KEY;
     
     if (!secret) {
@@ -27,44 +27,52 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Handle body parsing safely
-    let requestData;
-    
-    try {
-      // Don't log req.body directly - it might be corrupted
-      console.log('Body type:', typeof req.body);
-      
-      if (!req.body) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Empty request body' 
-        });
-      }
+    // 2. Handle raw body - bypass Vercel's automatic parsing
+    let rawBody = '';
+    let requestData = null;
 
+    // Check if we have a raw body to read
+    if (req.body !== undefined) {
+      console.log('Body available, type:', typeof req.body);
+      
+      // Try different approaches to get the body
       if (typeof req.body === 'string') {
-        console.log('Parsing string body...');
-        requestData = JSON.parse(req.body);
-      } else if (typeof req.body === 'object') {
-        console.log('Using object body...');
+        rawBody = req.body;
+      } else if (typeof req.body === 'object' && req.body !== null) {
+        // If it's already an object, use it directly
         requestData = req.body;
       } else {
         return res.status(400).json({ 
           success: false, 
-          error: 'Invalid body type' 
+          error: 'No request body received' 
         });
       }
 
-    } catch (bodyError) {
-      console.error('Body parsing error:', bodyError.message);
+      // If we have a raw string, try to parse it
+      if (rawBody && !requestData) {
+        try {
+          console.log('Parsing raw body string...');
+          requestData = JSON.parse(rawBody);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError.message);
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Invalid JSON format',
+            'error-codes': ['invalid-json']
+          });
+        }
+      }
+    } else {
       return res.status(400).json({ 
         success: false, 
-        error: 'Invalid JSON in request body',
-        'error-codes': ['invalid-json']
+        error: 'No request body' 
       });
     }
 
-    // 3. Extract and validate token
-    const token = requestData['cf-turnstile-response'];
+    console.log('Request data parsed successfully');
+
+    // 3. Extract token
+    const token = requestData && requestData['cf-turnstile-response'];
 
     if (!token || typeof token !== 'string' || token.trim().length === 0) {
       return res.status(400).json({ 
@@ -74,13 +82,15 @@ export default async function handler(req, res) {
       });
     }
 
+    console.log('Token extracted, length:', token.length);
+
     // 4. Get client IP
-    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+    const clientIP = req.headers['cf-connecting-ip'] || 
+                    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
                     req.headers['x-real-ip'] || 
-                    req.connection?.remoteAddress ||
                     '127.0.0.1';
 
-    console.log('Verifying token for IP:', clientIP);
+    console.log('Verifying with Cloudflare for IP:', clientIP);
 
     // 5. Verify with Cloudflare
     const verifyPayload = new URLSearchParams({
@@ -92,14 +102,13 @@ export default async function handler(req, res) {
     const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Vercel-Function/1.0'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: verifyPayload
     });
 
     if (!verifyResponse.ok) {
-      console.error('Cloudflare API error:', verifyResponse.status);
+      console.error('Cloudflare API error:', verifyResponse.status, verifyResponse.statusText);
       return res.status(502).json({ 
         success: false, 
         error: 'Verification service unavailable',
@@ -109,12 +118,12 @@ export default async function handler(req, res) {
 
     const result = await verifyResponse.json();
     
-    console.log('Verification result:', {
+    console.log('Cloudflare verification result:', {
       success: result.success,
       errorCodes: result['error-codes']
     });
 
-    // 6. Return final result
+    // 6. Return result
     return res.status(200).json({
       success: result.success === true,
       action: result.action || null,
@@ -125,9 +134,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Turnstile verification error:', {
+    console.error('Verification error:', {
       message: error.message,
-      name: error.name
+      name: error.name,
+      stack: error.stack
     });
 
     return res.status(500).json({ 
