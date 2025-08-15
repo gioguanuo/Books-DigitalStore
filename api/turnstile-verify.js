@@ -1,6 +1,6 @@
-// /api/turnstile-verify.js - DEBUG VERSION
+// /api/turnstile-verify.js - FIX FINALE PER BODY PARSING
 export default async function handler(req, res) {
-  // Basic CORS
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,89 +10,131 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      success: false, 
+      error: 'Method not allowed' 
+    });
   }
 
   try {
-    // Step 1: Log everything we can
-    console.log('=== DEBUG START ===');
-    console.log('Headers:', JSON.stringify(req.headers));
-    console.log('Body type:', typeof req.body);
-    console.log('Body content:', req.body);
-    console.log('Environment check:', {
-      hasSecret: !!process.env.TURNSTILE_SECRET_KEY,
-      nodeEnv: process.env.NODE_ENV
-    });
-
-    // Step 2: Check secret
+    // 1. Check environment first
     const secret = process.env.TURNSTILE_SECRET_KEY;
+    
     if (!secret) {
-      console.log('ERROR: No secret key');
-      return res.status(500).json({ error: 'No secret key' });
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Secret key not configured' 
+      });
     }
 
-    // Step 3: Try to parse body
-    let data = null;
-    console.log('Attempting to parse body...');
+    // 2. Handle body parsing safely
+    let requestData;
     
-    if (typeof req.body === 'string') {
-      console.log('Body is string, parsing JSON...');
-      data = JSON.parse(req.body);
-    } else {
-      console.log('Body is object, using directly...');
-      data = req.body;
+    try {
+      // Don't log req.body directly - it might be corrupted
+      console.log('Body type:', typeof req.body);
+      
+      if (!req.body) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Empty request body' 
+        });
+      }
+
+      if (typeof req.body === 'string') {
+        console.log('Parsing string body...');
+        requestData = JSON.parse(req.body);
+      } else if (typeof req.body === 'object') {
+        console.log('Using object body...');
+        requestData = req.body;
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid body type' 
+        });
+      }
+
+    } catch (bodyError) {
+      console.error('Body parsing error:', bodyError.message);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid JSON in request body',
+        'error-codes': ['invalid-json']
+      });
     }
-    
-    console.log('Parsed data:', data);
 
-    // Step 4: Extract token
-    const token = data ? data['cf-turnstile-response'] : null;
-    console.log('Extracted token:', token ? `${token.substring(0, 10)}...` : 'NULL');
+    // 3. Extract and validate token
+    const token = requestData['cf-turnstile-response'];
 
-    if (!token) {
-      console.log('ERROR: No token found');
-      return res.status(400).json({ error: 'No token found' });
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Token missing or invalid',
+        'error-codes': ['missing-input-response']
+      });
     }
 
-    // Step 5: Get IP
-    const ip = req.headers['x-forwarded-for'] || 'unknown';
-    console.log('Client IP:', ip);
+    // 4. Get client IP
+    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                    req.headers['x-real-ip'] || 
+                    req.connection?.remoteAddress ||
+                    '127.0.0.1';
 
-    // Step 6: Try Cloudflare call
-    console.log('Making Cloudflare request...');
-    
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}&remoteip=${encodeURIComponent(ip)}`
+    console.log('Verifying token for IP:', clientIP);
+
+    // 5. Verify with Cloudflare
+    const verifyPayload = new URLSearchParams({
+      secret: secret,
+      response: token.trim(),
+      remoteip: clientIP
     });
 
-    console.log('Cloudflare response status:', response.status);
-    
-    const result = await response.json();
-    console.log('Cloudflare result:', result);
+    const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Vercel-Function/1.0'
+      },
+      body: verifyPayload
+    });
 
-    // Step 7: Return result
-    return res.status(200).json({
+    if (!verifyResponse.ok) {
+      console.error('Cloudflare API error:', verifyResponse.status);
+      return res.status(502).json({ 
+        success: false, 
+        error: 'Verification service unavailable',
+        'error-codes': ['service-unavailable']
+      });
+    }
+
+    const result = await verifyResponse.json();
+    
+    console.log('Verification result:', {
       success: result.success,
-      result: result,
-      debug: 'All steps completed successfully'
+      errorCodes: result['error-codes']
+    });
+
+    // 6. Return final result
+    return res.status(200).json({
+      success: result.success === true,
+      action: result.action || null,
+      hostname: result.hostname || null,
+      'challenge-ts': result['challenge-ts'] || null,
+      'error-codes': result['error-codes'] || [],
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    // Detailed error logging
-    console.error('=== ERROR DETAILS ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Error at line:', error.stack?.split('\n')[1]);
+    console.error('Turnstile verification error:', {
+      message: error.message,
+      name: error.name
+    });
 
     return res.status(500).json({ 
-      error: 'Internal error',
-      errorName: error.name,
-      errorMessage: error.message,
-      errorType: typeof error,
-      debug: 'Error in catch block'
+      success: false, 
+      error: 'Internal server error',
+      'error-codes': ['internal-error'],
+      timestamp: new Date().toISOString()
     });
   }
 }
